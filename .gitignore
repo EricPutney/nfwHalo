@@ -2,3 +2,5 @@ naf/
 naf\
 results\
 results/
+.ipynb_checkpoints\
+.ipynb_checkpoints/
