@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import integrate
 from scipy import special
+from scipy.interpolate import interp1d
 
 def gFcn(x):
     """
@@ -83,10 +84,22 @@ def phaseSpaceDistribution(radiusNorm, speed, haloAttrib):
         integrand = lambda PsiNorm: -(PsiNorm)**3*(1+(A(PsiNorm)/(PsiNorm)))*(2+(1+(A(PsiNorm)/(1+A(PsiNorm))))*((3*A(PsiNorm)/(PsiNorm))+2))/(np.sqrt(np.abs(PsiNorm-EpsNorm))*A(PsiNorm)**2*(1+A(PsiNorm))**2*(PsiNorm+A(PsiNorm)))
         return prefactor*integrate.quad(integrand,0,EpsNorm)[0]
     
-def speedCDF(radiusNorm, speed, haloAttrib):
+def phaseSpaceDistributionFromTable(radiusNorm, speed, haloAttrib, psTable, tabNormRadii, speedCubicSplines):
+    rNearIndices = np.argpartition(np.abs(tabNormRadii - radiusNorm),3)[:2]
+    rMinIndex = rNearIndices[np.argmin(tabNormRadii[rNearIndices])]
+    rMin = tabNormRadii[rMinIndex]
+    rMaxIndex = rNearIndices[np.argmax(tabNormRadii[rNearIndices])]
+    rMax = tabNormRadii[rMaxIndex]
+    
+    weight1 = (rMax-radiusNorm)/(rMax-rMin)
+    weight2 = 1 - weight1
+    return weight1*speedCubicSplines[rMinIndex](speed) + weight2*speedCubicSplines[rMaxIndex](speed)
+    
+    
+def speedCDF(radiusNorm, speed, haloAttrib, psTable, tabNormRadii, speedCubicSplines):
     rDelta = haloAttrib[6]
     radius = radiusNorm*rDelta
-    return integrate.quad(lambda speedVar: (4*np.pi*radius*speedVar)**2*phaseSpaceDistribution(radiusNorm, speedVar,haloAttrib),0,speed)[0]
+    return integrate.quad(lambda speedVar: (4*np.pi*radius*speedVar)**2*phaseSpaceDistributionFromTable(radiusNorm, speedVar,haloAttrib,psTable,tabNormRadii,speedCubicSplines),0,speed)[0]
 
 #def speedPDF(speed, radiusNorm, haloAttrib):
 #    """
