@@ -32,11 +32,25 @@ def inverseTransformSamplingVelocity(nTracers, haloAttributes, radiiNorm):
     """
     resultList = []
     for i in range(nTracers):
-        disp = NFW.radialVelocityDispersion(radiiNorm[i], haloAttributes)
         bracket=(0,NFW.maxSpeed(radiiNorm[i], haloAttributes))
-        cdfmax = NFW.speedCDFcallByDisp(bracket[1], disp)
+        cdfmax = NFW.speedCDF(radiiNorm[i],bracket[1],haloAttributes)
         randNum = cdfmax*np.random.default_rng().uniform(0,1,1)[0]
-        CDFsubRandomNumber = lambda x: NFW.speedCDFcallByDisp(x, disp) - randNum
-        resultList.append(optimize.root_scalar(CDFsubRandomNumber , bracket = bracket, method='brentq', x0=disp).root)
+        CDFsubRandomNumber = lambda x: NFW.speedCDF(radiiNorm[i],x,haloAttributes) - randNum
+        resultList.append(optimize.root_scalar(CDFsubRandomNumber , bracket = bracket, method='brentq', x0=1.5*haloAttributes[1]).root)
     return resultList
+
+#def inverseTransformSamplingVelocity(nTracers, haloAttributes, radiiNorm):
+#    """
+#    Specially built ITS method for the cumulative distribution function for picking a speed.
+#    """
+#    resultList = []
+#    for i in range(nTracers):
+#        disp = NFW.radialVelocityDispersion(radiiNorm[i], haloAttributes)
+#        bracket=(0,NFW.maxSpeed(radiiNorm[i], haloAttributes))
+#        cdfmax = NFW.speedCDFcallByDisp(bracket[1], disp)
+#        randNum = cdfmax*np.random.default_rng().uniform(0,1,1)[0]
+#        CDFsubRandomNumber = lambda x: NFW.speedCDFcallByDisp(x, disp) - randNum
+#        resultList.append(optimize.root_scalar(CDFsubRandomNumber , bracket = bracket, method='brentq', x0=disp).root)
+#    return resultList
+    
     
