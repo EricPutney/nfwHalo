@@ -2,6 +2,7 @@ from scipy import optimize
 import numpy as np
 from numpy.random import default_rng
 import nfwFunctions as NFW
+from scipy.interpolate import interp1d
 
 def inverseTransformSampling(CDF, bracket, x0=None, x1=None):
     """
@@ -26,17 +27,17 @@ def inverseTransformSamplingRadius(nTracers, haloAttributes, bracket, x0=None, x
         resultList.append(optimize.root_scalar(CDFsubRandomNumber , bracket = bracket, method='brentq', x0=x0, x1=x1).root)
     return resultList
 
-def inverseTransformSamplingVelocity(nTracers, haloAttributes, radiiNorm):
+def inverseTransformSamplingVelocity(nTracers, haloAttributes, radiiNorm, tabNormRadii, speedCubicSplines):
     """
     Specially built ITS method for the cumulative distribution function for picking a speed.
     """
     resultList = []
     for i in range(nTracers):
         bracket=(0,NFW.maxSpeed(radiiNorm[i], haloAttributes))
-        cdfmax = NFW.speedCDF(radiiNorm[i],bracket[1],haloAttributes)
+        cdfmax = NFW.speedCDF(radiiNorm[i],bracket[1],haloAttributes,tabNormRadii, speedCubicSplines)
         randNum = cdfmax*np.random.default_rng().uniform(0,1,1)[0]
-        CDFsubRandomNumber = lambda x: NFW.speedCDF(radiiNorm[i],x,haloAttributes) - randNum
-        resultList.append(optimize.root_scalar(CDFsubRandomNumber , bracket = bracket, method='brentq', x0=1.5*haloAttributes[1]).root)
+        CDFsubRandomNumber = lambda x: NFW.speedCDF(radiiNorm[i],x,haloAttributes,tabNormRadii,speedCubicSplines) - randNum
+        resultList.append(optimize.root_scalar(CDFsubRandomNumber , bracket = bracket, method='brentq').root)
     return resultList
 
 #def inverseTransformSamplingVelocity(nTracers, haloAttributes, radiiNorm):

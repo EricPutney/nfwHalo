@@ -2,6 +2,7 @@ import numpy as np
 from scipy import integrate
 from scipy import special
 from scipy.interpolate import interp1d
+import sys
 
 def gFcn(x):
     """
@@ -83,9 +84,18 @@ def phaseSpaceDistribution(radiusNorm, speed, haloAttrib):
         prefactor = 1./(np.sqrt(128)*np.pi**3*rScale**3*energyNorm**(3./2.)*gFcn(c))
         integrand = lambda PsiNorm: -(PsiNorm)**3*(1+(A(PsiNorm)/(PsiNorm)))*(2+(1+(A(PsiNorm)/(1+A(PsiNorm))))*((3*A(PsiNorm)/(PsiNorm))+2))/(np.sqrt(np.abs(PsiNorm-EpsNorm))*A(PsiNorm)**2*(1+A(PsiNorm))**2*(PsiNorm+A(PsiNorm)))
         return prefactor*integrate.quad(integrand,0,EpsNorm)[0]
-    
+
+def evalPsdLoop(tabulatedNormRadii,numTabulatedSpeeds,tabulatedSpeeds,haloAttributes):
+    psTable = np.zeros((len(tabulatedNormRadii),numTabulatedSpeeds))
+    splineList = []
+    for i in range(len(tabulatedNormRadii)):
+        for j in range(numTabulatedSpeeds):
+            psTable[i,j] = phaseSpaceDistribution(tabulatedNormRadii[i],tabulatedSpeeds[j],haloAttributes)
+        splineList.append(interp1d(tabulatedSpeeds,psTable[i,:],kind='cubic',fill_value='extrapolate'))
+    return (splineList,psTable)    
+
 def phaseSpaceDistributionFromTable(radiusNorm, speed, tabulatedNormRadii, speedSplines, haloAttrib):
-    rNearIndices = np.argpartition(np.abs(tabulatedNormRadii - radiusNorm),3)[:2]
+    rNearIndices = np.argpartition(np.abs(tabulatedNormRadii - radiusNorm),2)[:2]
     rMinIndex = rNearIndices[np.argmin(tabulatedNormRadii[rNearIndices])]
     rMin = tabulatedNormRadii[rMinIndex]
     rMaxIndex = rNearIndices[np.argmax(tabulatedNormRadii[rNearIndices])]
@@ -95,8 +105,8 @@ def phaseSpaceDistributionFromTable(radiusNorm, speed, tabulatedNormRadii, speed
     weight2 = 1 - weight1
     return weight1*speedSplines[rMinIndex](speed) + weight2*speedSplines[rMaxIndex](speed)
     
-    
-def speedCDF(radiusNorm, speed, haloAttrib, psTable, tabulatedNormRadii, speedSplines):
+
+def speedCDF(radiusNorm, speed, haloAttrib, tabulatedNormRadii, speedSplines):
     rDelta = haloAttrib[6]
     radius = radiusNorm*rDelta
     return integrate.quad(lambda speedVar: (4*np.pi*radius*speedVar)**2*phaseSpaceDistributionFromTable(radiusNorm, speedVar,tabulatedNormRadii,speedSplines,haloAttrib),0,speed)[0]
